@@ -5,11 +5,11 @@ import java.util.UUID;
 
 public class User{
     
-    private final UUID id;
-    private final String name;
-    private final String email;
-    private final UserStatus status;
-    private final LocalDateTime createdAt;
+    private  UUID id;
+    private  String name;
+    private  String email;
+    private  UserStatus status;
+    private  LocalDateTime createdAt;
 
     public User(UUID id, String name, String email, UserStatus status, LocalDateTime createdAt){
         validateName(name);
@@ -52,6 +52,19 @@ public class User{
 
     public LocalDateTime getCreatedAt(){
         return createdAt;
+    }
+
+    // --- SETTERS (Necesarios para la actualización del caso de uso PUT) ---
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
     }
 
 

@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.enterprise.user.application.ports.input.CreateUserCommand;
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
 import com.enterprise.user.application.ports.input.GetUserByIdUseCase;
+import com.enterprise.user.application.ports.input.UpdateUserCommand;
+import com.enterprise.user.application.ports.input.UpdateUserUseCase;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,10 +32,12 @@ public class UserController {
 
     private final CreateUserUseCase createUserUseCase;
     private final GetUserByIdUseCase getUserByIdUseCase;
+    private final UpdateUserUseCase updateUserUseCase;
 
-    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase) {
+    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase, UpdateUserUseCase updateUserUseCase) {
         this.createUserUseCase = createUserUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
+        this.updateUserUseCase = updateUserUseCase;
     }
 
     @PostMapping
@@ -61,6 +67,13 @@ public class UserController {
         User user = getUserByIdUseCase.getUserById(id)
                 .orElseThrow(() -> new UserNotFoundException("El usuario con ID " + id + " no existe."));
         return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
+        UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email());
+        User updatedUser = updateUserUseCase.updateUser(command);
+        return ResponseEntity.ok(updatedUser);
     }
     
 }

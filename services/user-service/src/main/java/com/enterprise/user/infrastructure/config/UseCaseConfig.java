@@ -2,9 +2,11 @@ package com.enterprise.user.infrastructure.config;
 
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
 import com.enterprise.user.application.ports.input.GetUserByIdUseCase;
+import com.enterprise.user.application.ports.input.UpdateUserUseCase;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.application.usecase.CreateUserService;
 import com.enterprise.user.application.usecase.GetUserByIdService;
+import com.enterprise.user.application.usecase.UpdateUserService;
 
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
@@ -25,5 +27,10 @@ public class UseCaseConfig {
     @Bean
     public GetUserByIdUseCase getUserByIdUseCase(UserRepositoryPort userRepositoryPort) {
         return new GetUserByIdService(userRepositoryPort);
+    }
+
+    @Bean
+    public UpdateUserUseCase updateUserUseCase(UserRepositoryPort userRepositoryPort) {
+        return new UpdateUserService(userRepositoryPort);
     }
 }
