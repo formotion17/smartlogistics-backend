@@ -55,4 +55,16 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
                 entity.getCreatedAt()
             ));
     }
+
+    @Override
+    public Optional<User> findById(java.util.UUID id) {
+        return springDataUserRepository.findById(id)
+            .map(entity -> new User(
+                entity.getId(),
+                entity.getName(),
+                entity.getEmail(),
+                UserStatus.valueOf(entity.getStatus()),
+                entity.getCreatedAt()
+            ));
+    }
 }
