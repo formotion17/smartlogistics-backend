@@ -67,4 +67,9 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
                 entity.getCreatedAt()
             ));
     }
+
+    @Override
+    public void deleteById(java.util.UUID id) {
+        springDataUserRepository.deleteById(id);
+    }
 }

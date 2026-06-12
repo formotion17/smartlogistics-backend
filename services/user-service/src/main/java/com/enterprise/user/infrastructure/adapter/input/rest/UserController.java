@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.enterprise.user.application.ports.input.CreateUserCommand;
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
+import com.enterprise.user.application.ports.input.DeleteUserUseCase;
 import com.enterprise.user.application.ports.input.GetUserByIdUseCase;
 import com.enterprise.user.application.ports.input.UpdateUserCommand;
 import com.enterprise.user.application.ports.input.UpdateUserUseCase;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,11 +35,13 @@ public class UserController {
     private final CreateUserUseCase createUserUseCase;
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserUseCase updateUserUseCase;
+    private final DeleteUserUseCase deleteUserUseCase;
 
-    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase, UpdateUserUseCase updateUserUseCase) {
+    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase, UpdateUserUseCase updateUserUseCase, DeleteUserUseCase deleteUserUseCase) {
         this.createUserUseCase = createUserUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserUseCase = updateUserUseCase;
+        this.deleteUserUseCase = deleteUserUseCase;
     }
 
     @PostMapping
@@ -74,6 +78,19 @@ public class UserController {
         UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email());
         User updatedUser = updateUserUseCase.updateUser(command);
         return ResponseEntity.ok(updatedUser);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<java.util.Map<String, String>> deleteUser(@PathVariable UUID id) {
+        // 1. Ejecuta el caso de uso (si no existe, saltará el 404 del ExceptionHandler)
+        deleteUserUseCase.deleteUser(id);
+        
+        // 2. Si todo va bien, construye un mapa con el mensaje de éxito
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("mensaje", "Usuario borrado correctamente");
+        
+        // 3. Devuelve 200 OK con el cuerpo del JSON
+        return ResponseEntity.ok(response);
     }
     
 }

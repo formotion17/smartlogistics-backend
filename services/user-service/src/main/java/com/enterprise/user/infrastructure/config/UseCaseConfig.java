@@ -1,10 +1,12 @@
 package com.enterprise.user.infrastructure.config;
 
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
+import com.enterprise.user.application.ports.input.DeleteUserUseCase;
 import com.enterprise.user.application.ports.input.GetUserByIdUseCase;
 import com.enterprise.user.application.ports.input.UpdateUserUseCase;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.application.usecase.CreateUserService;
+import com.enterprise.user.application.usecase.DeleteUserService;
 import com.enterprise.user.application.usecase.GetUserByIdService;
 import com.enterprise.user.application.usecase.UpdateUserService;
 
@@ -32,5 +34,10 @@ public class UseCaseConfig {
     @Bean
     public UpdateUserUseCase updateUserUseCase(UserRepositoryPort userRepositoryPort) {
         return new UpdateUserService(userRepositoryPort);
+    }
+
+    @Bean
+    public DeleteUserUseCase deleteUserUseCase(UserRepositoryPort userRepositoryPort) {
+        return new DeleteUserService(userRepositoryPort);
     }
 }
