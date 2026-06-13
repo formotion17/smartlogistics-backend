@@ -15,12 +15,23 @@ import com.enterprise.user.application.ports.input.CreateUserCommand;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.domain.model.User;
 
-
+/**
+ * Suite de pruebas unitarias para {@link CreateUserService}.
+ * <p>
+ * Verifica el correcto funcionamiento de la lógica de negocio al crear un nuevo usuario,
+ * asegurando que los datos se procesen correctamente y que se gestionen las excepciones
+ * esperadas mediante el uso de mocks para las dependencias externas (puertos).
+ * </p>
+ */
 class CreateUserServiceTest {
     
     private UserRepositoryPort userRepositoryPort;
     private CreateUserService createUserService;
 
+    /**
+     * Configuración previa a cada test.
+     * Inicializa el mock del puerto de salida e inyecta la dependencia en el servicio.
+     */
     @BeforeEach
     void setUp() { 
         // Mockeamos el puerto de salida
@@ -33,6 +44,10 @@ class CreateUserServiceTest {
         createUserService = new CreateUserService(userRepositoryPort);
     }
 
+    /**
+     * Test: Creación exitosa de usuario.
+     * Verifica que el usuario se crea, tiene ID asignado y se invoca al repositorio.
+     */
     @Test
     void shouldCreateUserSuccessfully() {
         // 1. Arrange (Preparar datos)
@@ -57,6 +72,10 @@ class CreateUserServiceTest {
         //Mockito.verify(userRepositoryPort, Mockito.times(1)).save(any(User.class));
     }
 
+    /**
+     * Test: Lanzamiento de excepción al existir conflictos.
+     * Verifica que el servicio propague correctamente errores del repositorio.
+     */
     @Test
     void shouldThrowExceptionWhenEmailAlreadyExists() {
         // 1. Arrange: Preparamos el comando
@@ -76,6 +95,11 @@ class CreateUserServiceTest {
         Mockito.verify(userRepositoryPort, Mockito.times(1)).save(any(User.class));
     }
 
+    /**
+     * Test: Integridad de datos.
+     * Verifica que los campos en el objeto de dominio coinciden exactamente 
+     * con los datos enviados en el comando.
+     */
     @Test
     void shouldCreateUserWithCorrectData() {
         // 1. Arrange

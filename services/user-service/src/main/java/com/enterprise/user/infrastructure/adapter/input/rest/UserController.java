@@ -27,7 +27,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-
+/**
+ * Adaptador de entrada REST para la gestión de usuarios.
+ * <p>
+ * Este controlador expone los endpoints de la API y delega la ejecución de las 
+ * operaciones a los casos de uso (puertos de entrada). Mantiene la lógica de 
+ * negocio aislada del protocolo HTTP.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -37,6 +44,9 @@ public class UserController {
     private final UpdateUserUseCase updateUserUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
 
+    /**
+     * Constructor para inyección de dependencias de los casos de uso.
+     */
     public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase, UpdateUserUseCase updateUserUseCase, DeleteUserUseCase deleteUserUseCase) {
         this.createUserUseCase = createUserUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
@@ -44,6 +54,11 @@ public class UserController {
         this.deleteUserUseCase = deleteUserUseCase;
     }
 
+    /**
+     * Endpoint para crear un nuevo usuario.
+     * @param request Datos de entrada validados del cuerpo de la petición.
+     * @return Usuario creado con código de estado 201 Created.
+     */
     @PostMapping
     public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
 
@@ -58,6 +73,12 @@ public class UserController {
     }
 
     // 1. Por URL con path variable
+    /**
+     * Busca un usuario por ID mediante una variable de ruta (Path Variable).
+     * @param id Identificador único del usuario.
+     * @return El usuario encontrado con código 200 OK.
+     * @throws UserNotFoundException Si el usuario no existe.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserByPath(@PathVariable UUID id) {
         User user = getUserByIdUseCase.getUserById(id)
@@ -66,6 +87,11 @@ public class UserController {
     }
 
     // 2. Por parametro (Query Param)
+    /**
+     * Busca un usuario por ID mediante parámetro de consulta (Query Param).
+     * @param id Identificador único del usuario.
+     * @return El usuario encontrado con código 200 OK.
+     */
     @GetMapping
     public ResponseEntity<User> getUserByParam(@RequestParam UUID id) {
         User user = getUserByIdUseCase.getUserById(id)
@@ -73,6 +99,12 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    /**
+     * Actualiza un usuario existente.
+     * @param id Identificador único del usuario.
+     * @param request Datos actualizados del usuario.
+     * @return Usuario actualizado con código 200 OK.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
         UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email(),request.phone());
@@ -80,6 +112,11 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Elimina un usuario por su ID.
+     * @param id Identificador único del usuario.
+     * @return Respuesta con mensaje de éxito y código 200 OK.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<java.util.Map<String, String>> deleteUser(@PathVariable UUID id) {
         // 1. Ejecuta el caso de uso (si no existe, saltará el 404 del ExceptionHandler)

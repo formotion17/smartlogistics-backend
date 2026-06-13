@@ -8,6 +8,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Entidad de persistencia que representa la tabla 'users' en la base de datos.
+ * <p>
+ * Esta clase es exclusiva de la capa de infraestructura. Su único propósito es
+ * facilitar el mapeo ORM (Object-Relational Mapping) mediante JPA.
+ * No debe contener lógica de negocio, solo anotaciones de mapeo y estructura de datos.
+ * </p>
+ */
 @Entity
 @Table(name = "users")
 public class UserEntity {
@@ -30,10 +38,22 @@ public class UserEntity {
     @Column(name = "phone")
     private String phone;
 
-    // JPA requiere un constructor vacío
+    /**
+     * Constructor por defecto requerido por la especificación JPA para la
+     * instanciación de entidades mediante reflexión.
+     */
     public UserEntity() {
     }
 
+    /**
+     * Constructor completo para inicializar la entidad desde el adaptador de persistencia.
+     * * @param id Identificador único.
+     * @param name Nombre del usuario.
+     * @param email Correo electrónico.
+     * @param status Estado del usuario (almacenado como String).
+     * @param createdAt Fecha y hora de creación.
+     * @param phone Número de teléfono.
+     */
     public UserEntity(UUID id, String name, String email, String status, LocalDateTime createdAt, String phone) {
         this.id = id;
         this.name = name;
@@ -43,48 +63,23 @@ public class UserEntity {
         this.phone = phone;
     }
 
-    // Getters y Setters
-    public UUID getId() {
-        return id;
-    }
+   // Getters y Setters
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
     
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    // Añade su getter y setter
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 

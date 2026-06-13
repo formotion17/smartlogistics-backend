@@ -10,15 +10,32 @@ import com.enterprise.user.domain.model.UserStatus;
 import com.enterprise.user.infrastructure.adapter.output.persistence.entity.UserEntity;
 import com.enterprise.user.infrastructure.adapter.output.persistence.repository.SpringDataUserRepository;
 
+/**
+ * Adaptador de persistencia que implementa el puerto de salida {@link UserRepositoryPort}.
+ * <p>
+ * Esta clase actúa como puente entre la lógica de negocio y la capa de persistencia (JPA/Hibernate).
+ * Su responsabilidad es realizar el mapeo (traducción) entre el modelo de dominio {@link User}
+ * y la entidad de base de datos {@link UserEntity}.
+ * </p>
+ */
 @Component
 public class UserPersistenceAdapter implements UserRepositoryPort {
 
     private final SpringDataUserRepository springDataUserRepository;
 
+    /**
+     * Constructor inyectado por Spring para el repositorio de datos.
+     * @param springDataUserRepository Repositorio de Spring Data JPA.
+     */
     public UserPersistenceAdapter(SpringDataUserRepository springDataUserRepository) {
         this.springDataUserRepository = springDataUserRepository;
     }
 
+    /**
+     * Persiste un usuario en la base de datos realizando la conversión de dominio a entidad.
+     * @param user Modelo de usuario del dominio.
+     * @return El usuario guardado, mapeado de vuelta al dominio.
+     */
     @Override
     public User save(User user) {
         // 1. Mapear de Dominio a Entidad de base de datos
@@ -46,6 +63,11 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     }
 
+    /**
+     * Busca un usuario por su correo electrónico.
+     * @param email Correo electrónico a buscar.
+     * @return Un Optional con el usuario si existe, o vacío.
+     */
     @Override
     public Optional<User> findByEmail(String email) {
         return springDataUserRepository.findByEmail(email)
@@ -59,6 +81,11 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
             ));
     }
 
+    /**
+     * Busca un usuario por su identificador único (UUID).
+     * @param id UUID del usuario.
+     * @return Un Optional con el usuario si existe, o vacío.
+     */
     @Override
     public Optional<User> findById(java.util.UUID id) {
         return springDataUserRepository.findById(id)
@@ -72,6 +99,10 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
             ));
     }
 
+    /**
+     * Elimina un usuario de la base de datos por su ID.
+     * @param id UUID del usuario a eliminar.
+     */
     @Override
     public void deleteById(java.util.UUID id) {
         springDataUserRepository.deleteById(id);
