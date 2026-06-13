@@ -48,7 +48,7 @@ public class UserController {
     public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
 
         // 1. Mapear los datos de entreda a lo que entiende nuestro command de aplicación
-        CreateUserCommand command = new CreateUserCommand(request.name(), request.email());
+        CreateUserCommand command = new CreateUserCommand(request.name(), request.email(), request.phone());
 
         // 2. Ejecutar el caso de uso
         User createdUser = createUserUseCase.createUser(command);
@@ -75,7 +75,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
-        UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email());
+        UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email(),request.phone());
         User updatedUser = updateUserUseCase.updateUser(command);
         return ResponseEntity.ok(updatedUser);
     }

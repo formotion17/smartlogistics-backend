@@ -31,7 +31,8 @@ public class CreateUserService implements CreateUserUseCase {
             command.name(),
             command.email(),
             status,
-            now
+            now,
+            command.phone()
         );
 
         // 3. Guardar el usuario usando el puerto de salida y devolverlo

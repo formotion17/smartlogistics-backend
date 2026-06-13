@@ -12,5 +12,9 @@ public record CreateUserRequest(
 
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "El formato del email no es válido")
-    String email
+    String email,
+
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(regexp = "^[0-9]{9,15}$", message = "El teléfono debe contener entre 9 y 15 dígitos")
+    String phone
 ) {}

@@ -27,7 +27,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
             user.getName(),
             user.getEmail(),
             user.getStatus().name(),
-            user.getCreatedAt()
+            user.getCreatedAt(),
+            user.getPhone()
         );
 
         // 2. Guardar usando el repositorio de Spring Data JPA
@@ -39,7 +40,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
             savedEntity.getName(),
             savedEntity.getEmail(),
             UserStatus.valueOf(savedEntity.getStatus()),
-            savedEntity.getCreatedAt()
+            savedEntity.getCreatedAt(),
+            savedEntity.getPhone()
         );
 
     }
@@ -52,7 +54,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
                 entity.getName(),
                 entity.getEmail(),
                 UserStatus.valueOf(entity.getStatus()),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getPhone()
             ));
     }
 
@@ -64,7 +67,8 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
                 entity.getName(),
                 entity.getEmail(),
                 UserStatus.valueOf(entity.getStatus()),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getPhone()
             ));
     }
 

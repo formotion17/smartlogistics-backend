@@ -5,13 +5,14 @@ import java.util.UUID;
 
 public class User{
     
-    private  UUID id;
-    private  String name;
-    private  String email;
-    private  UserStatus status;
-    private  LocalDateTime createdAt;
+    private UUID id;
+    private String name;
+    private String email;
+    private UserStatus status;
+    private LocalDateTime createdAt;
+    private String phone;
 
-    public User(UUID id, String name, String email, UserStatus status, LocalDateTime createdAt){
+    public User(UUID id, String name, String email, UserStatus status, LocalDateTime createdAt, String phone){
         validateName(name);
         validateEmail(email);
 
@@ -66,6 +67,9 @@ public class User{
     public void setStatus(UserStatus status) {
         this.status = status;
     }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
 
 }

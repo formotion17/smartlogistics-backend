@@ -27,16 +27,20 @@ public class UserEntity {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "phone")
+    private String phone;
+
     // JPA requiere un constructor vacío
     public UserEntity() {
     }
 
-    public UserEntity(UUID id, String name, String email, String status, LocalDateTime createdAt) {
+    public UserEntity(UUID id, String name, String email, String status, LocalDateTime createdAt, String phone) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.status = status;
         this.createdAt = createdAt;
+        this.phone = phone;
     }
 
     // Getters y Setters
@@ -79,5 +83,9 @@ public class UserEntity {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    // Añade su getter y setter
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
 }
