@@ -21,6 +21,7 @@ public class User{
         this.email=email;
         this.status=status;
         this.createdAt=createdAt;
+        this.phone=phone;
     }
 
     private void validateName(String name){
