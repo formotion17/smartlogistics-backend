@@ -4,16 +4,24 @@ server:
 spring:
   application:
     name: user-service
+
   datasource:
     url: jdbc:postgresql://localhost:5432/smartlogistics
     username: admin
     password: admin
     driver-class-name: org.postgresql.Driver
+
   jpa:
+    # APAGAMOS LA MAGIA: Cambiamos 'update' por 'validate'
+    # Ahora Spring solo validará que la tabla existe, pero no la creará.
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # CONFIGURACIÓN DE FLYWAY
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # Ayuda si la base de datos ya tiene tablas
