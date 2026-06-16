@@ -1,6 +1,7 @@
 package com.enterprise.user.application.usecase;
 
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +31,7 @@ class CreateUserServiceTest {
     private UserRepositoryPort userRepositoryPort;
     private PasswordEncoderPort passwordEncoderPort; // <-- 1. Nuevo Mock de seguridad
     private CreateUserService createUserService;
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * Configuración previa a cada test.
@@ -45,7 +47,7 @@ class CreateUserServiceTest {
         when(passwordEncoderPort.encode(anyString())).thenReturn("hashedPassword123");
 
         // Inyectamos los "dobles" en el servicio: 
-        createUserService = new CreateUserService(userRepositoryPort, passwordEncoderPort); // <-- 2. Pasamos el encriptador
+        createUserService = new CreateUserService(userRepositoryPort, passwordEncoderPort, eventPublisher); // <-- 2. Pasamos el encriptador
     }
 
     /**

@@ -8,13 +8,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority; // <--- NUEVO IMPORT
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List; // <--- NUEVO IMPORT
 
 /**
  * Interceptor HTTP que valida los tokens JWT en cada petición.
@@ -41,15 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 1. ¿Trae pulsera? (Comprobamos si hay cabecera Authorization y si empieza por "Bearer ")
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // No trae token o el formato es incorrecto, le dejamos pasar sin autenticar.
-            // Spring Security lo bloqueará más adelante si la ruta es privada.
             filterChain.doFilter(request, response);
             return;
         }
 
         // 2. Leemos la pulsera (Extraemos el token quitando los 7 caracteres de "Bearer ")
         jwt = authHeader.substring(7);
-        userEmail = tokenProviderPort.extractUsername(jwt); // Usamos nuestro puerto para leer el email
+        userEmail = tokenProviderPort.extractUsername(jwt);
 
         // 3. Si la pulsera tiene un email y el usuario aún no ha sido autenticado en este hilo...
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -60,11 +59,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 4. Validamos que el token pertenezca a ese usuario y no esté caducado
             if (user != null && tokenProviderPort.isTokenValid(jwt, user)) {
                 
-                // 5. ¡Todo correcto! Le decimos a Spring Security que este usuario está autenticado
+                // <--- NUEVO: MAPEO DE ROLES PARA SPRING SECURITY --->
+                // ¿Por qué lo hacemos así?
+                // Spring Security exige que los roles del sistema comiencen estrictamente por el prefijo "ROLE_".
+                // Tomamos el 'status' del usuario (ej: "ADMIN"), lo pasamos a mayúsculas y creamos la autoridad
+                // "ROLE_ADMIN". Esto es lo que activará el funcionamiento de '.hasRole("ADMIN")' en SecurityConfig.
+                String roleWithPrefix = "ROLE_" + user.getStatus().toString().toUpperCase();
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(roleWithPrefix);
+                List<SimpleGrantedAuthority> authorities = List.of(authority);
+
+                // 5. ¡Todo correcto! Le decimos a Spring Security que este usuario está autenticado y qué rol tiene
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         user,
                         null,
-                        Collections.emptyList() // Aquí irían los roles (ADMIN, USER) en el futuro
+                        authorities // <--- ¡AQUÍ ESTÁ EL CAMBIO! Pasamos el rol real en vez de la lista vacía
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 

@@ -2,6 +2,7 @@ package com.enterprise.user;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 
 /**
@@ -18,6 +19,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * </ul>
  */
 @SpringBootApplication
+@EnableAsync // 💡 ¡NUEVO! Permite ejecutar tareas en segundo plano
 public class UserServiceApplication {
 
 	/**

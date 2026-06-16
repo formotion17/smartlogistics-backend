@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Adaptador de infraestructura que implementa la generación y validación de JWT.
@@ -48,6 +51,15 @@ public class JwtTokenProviderAdapter implements TokenProviderPort {
 
     @Override
     public String generateToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+    
+        // 💡 REGLA SENIOR: Spring Security exige por defecto que los roles 
+        // empiecen por el prefijo "ROLE_". Si tu status es "ADMIN", guardaremos "ROLE_ADMIN".
+        String rolFormateado = "ROLE_" + user.getStatus().toString().toUpperCase(); 
+        
+        // Metemos el rol dentro de una lista en los claims
+        claims.put("roles", List.of(rolFormateado));
+        
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))

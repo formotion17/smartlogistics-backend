@@ -17,6 +17,7 @@ import com.enterprise.user.application.usecase.LoginService;
 import com.enterprise.user.application.usecase.UpdateUserService;
 
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -43,9 +44,10 @@ public class UseCaseConfig {
      * @return Implementación concreta {@link CreateUserService}.
      */
     @Bean
-public CreateUserUseCase createUserUseCase(UserRepositoryPort userRepositoryPort, PasswordEncoderPort passwordEncoderPort) {
-    return new CreateUserService(userRepositoryPort, passwordEncoderPort);
-}
+    public CreateUserUseCase createUserUseCase(UserRepositoryPort userRepositoryPort, PasswordEncoderPort passwordEncoderPort,
+            ApplicationEventPublisher eventPublisher) {
+        return new CreateUserService(userRepositoryPort, passwordEncoderPort,eventPublisher);
+    }
 
     /**
      * Define el bean para el caso de uso de consulta de usuario por ID.

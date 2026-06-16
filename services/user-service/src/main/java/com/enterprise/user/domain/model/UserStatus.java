@@ -10,5 +10,8 @@ package com.enterprise.user.domain.model;
  */
 public enum UserStatus {
     ACTIVE,
-    INACTIVE
+    INACTIVE,
+    ADMIN,
+    DEV,
+    USER
 }

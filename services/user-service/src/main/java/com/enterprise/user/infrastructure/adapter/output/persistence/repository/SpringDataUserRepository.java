@@ -33,4 +33,9 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
      * @return Un {@link Optional} que contiene la entidad si se encuentra, o vacío en caso contrario.
      */
     Optional<UserEntity> findByEmail(String email);
+
+    @org.springframework.data.jpa.repository.Query(
+    value = "SELECT * FROM users WHERE email = :email", 
+    nativeQuery = true)
+    java.util.Optional<UserEntity> findAnyByEmailNative(@org.springframework.data.repository.query.Param("email") String email);
 }

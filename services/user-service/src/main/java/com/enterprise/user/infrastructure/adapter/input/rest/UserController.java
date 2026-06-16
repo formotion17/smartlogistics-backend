@@ -2,6 +2,7 @@ package com.enterprise.user.infrastructure.adapter.input.rest;
 
 import com.enterprise.user.domain.exception.UserNotFoundException;
 import com.enterprise.user.domain.model.User;
+import com.enterprise.user.infrastructure.config.security.IsAdmin;
 
 import jakarta.validation.Valid;
 
@@ -12,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -80,12 +83,17 @@ public class UserController {
 
     // 1. Por URL con path variable
     /**
-     * Busca un usuario por ID mediante una variable de ruta (Path Variable).
+     * Obtiene un usuario por su identificador único.
+     * * 💡 PERLITA DE SEGURIDAD: Control de acceso dinámico.
+     * #id hace referencia al parámetro @PathVariable UUID id del método.
+     * authentication.principal.id accede automáticamente al método getId() del objeto User 
+     * de dominio que tu filtro inyectó en la sesión.
      * @param id Identificador único del usuario.
      * @return El usuario encontrado con código 200 OK.
      * @throws UserNotFoundException Si el usuario no existe.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
     public ResponseEntity<User> getUserByPath(@PathVariable UUID id) {
         User user = getUserByIdUseCase.getUserById(id)
                 .orElseThrow(() -> new UserNotFoundException("El usuario con ID " + id + " no existe."));
@@ -112,6 +120,7 @@ public class UserController {
      * @return Usuario actualizado con código 200 OK.
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
         UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email(),request.phone());
         User updatedUser = updateUserUseCase.updateUser(command);
@@ -124,6 +133,7 @@ public class UserController {
      * @return Respuesta con mensaje de éxito y código 200 OK.
      */
     @DeleteMapping("/{id}")
+    @IsAdmin
     public ResponseEntity<java.util.Map<String, String>> deleteUser(@PathVariable UUID id) {
         // 1. Ejecuta el caso de uso (si no existe, saltará el 404 del ExceptionHandler)
         deleteUserUseCase.deleteUser(id);
@@ -143,18 +153,48 @@ public class UserController {
      * Spring convierte automáticamente los parámetros de la URL (ej: /api/users?page=0&size=5&sort=name,asc)
      * en el objeto {@link Pageable}.
      * </p>
+     * <p>
+     * 💡 PERLITA ARQUITECTÓNICA: Retorna un {@link PagedResponse} agnóstico para evitar la fuga de
+     * abstracciones de Spring Data (Page) hacia el exterior de la aplicación, blindando el contrato de la API.
+     * </p>
      *
      * @param pageable Parámetros de paginación interceptados por Spring.
      * Si el cliente no envía parámetros en la URL, se usarán los valores por defecto 
      * (@PageableDefault): página 0, tamaño 10, ordenados por email.
-     * @return Una respuesta HTTP 200 (OK) con el JSON que contiene el array de usuarios y los metadatos de la paginación.
+     * @return Una respuesta HTTP 200 (OK) con el JSON de estructura corporativa limpia (PagedResponse) 
+     * que contiene la lista filtrada de usuarios y los metadatos esenciales requeridos por el Frontend.
      */
     @GetMapping
-    public ResponseEntity<Page<User>> getAllUsers(
+    @IsAdmin
+    public ResponseEntity<PagedResponse<User>> getAllUsers(
             @PageableDefault(size = 10, page = 0, sort = "email") Pageable pageable) {
         
-        Page<User> users = getAllUsersUseCase.execute(pageable);
-        return ResponseEntity.ok(users);
+        // 1. Invocamos tu caso de uso de Dominio (sigue retornando un Page original)
+        Page<User> usersPage = getAllUsersUseCase.execute(pageable);
+        
+        // 2. Transmutamos mágicamente el Page al nuevo DTO controlado e inmutable
+        PagedResponse<User> response = PagedResponse.from(usersPage);
+        
+        // 3. Retornamos la respuesta limpia y desacoplada del framework
+        return ResponseEntity.ok(response);
     }
     
+    /**
+     * Obtiene el perfil del usuario actualmente autenticado en la sesión.
+     * <p>
+     * ¡Magia de Spring Security! Al usar @AuthenticationPrincipal, el framework intercepta 
+     * el token de la petición, extrae el objeto 'User' que guardó tu Filtro, y te lo inyecta 
+     * directamente aquí ya mapeado. No necesitas hacer consultas extras a la base de datos.
+     * </p>
+     *
+     * @param currentUser El usuario del dominio que ha iniciado sesión.
+     * @return El perfil completo del usuario autenticado.
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()") // 💡 ¡AQUÍ ESTÁ LA CLAVE! Exige estar autenticado, pero abre la puerta a todos los roles.
+    public ResponseEntity<User> getMyProfile(@AuthenticationPrincipal User currentUser) {
+        // Como el objeto ya contiene toda la información cargada desde el filtro, 
+        // simplemente lo devolvemos con un 200 OK. ¡Limpio, elegante y eficiente!
+        return ResponseEntity.ok(currentUser);
+    }
 }

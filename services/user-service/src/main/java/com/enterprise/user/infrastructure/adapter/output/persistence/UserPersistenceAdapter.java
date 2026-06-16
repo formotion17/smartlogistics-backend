@@ -37,12 +37,37 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     /**
-     * Persiste un usuario utilizando el Mapper para la conversión.
+     * Guarda un usuario aplicando una estrategia de reactivación si el email 
+     * ya existía previamente bajo un estado inactivo (Soft Delete).
      */
     @Override
     public User save(User user) {
-        UserEntity entity = userMapper.toEntity(user);
-        UserEntity savedEntity = springDataUserRepository.save(entity);
+        // 1. Buscamos en la BD usando la query nativa si existe el registro (activo o inactivo)
+        Optional<UserEntity> ghostUserOpt = springDataUserRepository.findAnyByEmailNative(user.getEmail());
+
+        UserEntity entityToSave;
+
+        if (ghostUserOpt.isPresent()) {
+            // 2. ¡ESTRATEGIA RESURRECCIÓN! Si el email ya existía pero estaba inactivo,
+            // reutilizamos su misma fila y su mismo ID para evitar violar el índice UNIQUE de PostgreSQL.
+            entityToSave = ghostUserOpt.get();
+            
+            // Le sobreescribimos los nuevos datos
+            entityToSave.setName(user.getName());
+            entityToSave.setPhone(user.getPhone());
+            entityToSave.setPassword(user.getPassword()); // Nueva contraseña encriptada
+            entityToSave.setStatus(user.getStatus().name()); // Rol reasignado (ej: USER)
+            entityToSave.setActive(true); // 🚀 Lo volvemos a activar
+        } else {
+            // 3. Si es un email 100% nuevo en la plataforma, mapeamos a entidad de forma normal
+            entityToSave = userMapper.toEntity(user);
+            entityToSave.setActive(true); // Nace activo por defecto
+        }
+
+        // 4. Guardamos (Spring Data JPA hará un UPDATE si reutilizó la fila, o un INSERT si es nuevo)
+        UserEntity savedEntity = springDataUserRepository.save(entityToSave);
+        
+        // 5. Devolvemos el resultado mapeado al Dominio
         return userMapper.toDomain(savedEntity);
     }
 

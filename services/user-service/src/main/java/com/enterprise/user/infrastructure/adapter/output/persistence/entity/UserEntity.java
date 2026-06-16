@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 // <--- NUEVOS IMPORTS PARA EL SOFT DELETE DE HIBERNATE 6 --->
@@ -25,7 +26,10 @@ import org.hibernate.annotations.SQLRestriction;
  * </p>
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    // Mapeamos el mismo nombre y columna que pusimos en el archivo de Flyway
+    @Index(name = "idx_users_email", columnList = "email")
+})
 // Intercepta repository.delete(user) y ejecuta un UPDATE en su lugar
 @SQLDelete(sql = "UPDATE users SET active = false WHERE id = ?")
 // Hibernate 6: Añade automáticamente "WHERE active = true" a todas las consultas de selección (GET/findAll)
