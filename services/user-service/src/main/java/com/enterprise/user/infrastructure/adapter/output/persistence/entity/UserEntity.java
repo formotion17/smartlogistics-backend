@@ -38,6 +38,9 @@ public class UserEntity {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "password", nullable = false)
+    private String password;
+
     /**
      * Constructor por defecto requerido por la especificación JPA para la
      * instanciación de entidades mediante reflexión.
@@ -53,14 +56,16 @@ public class UserEntity {
      * @param status Estado del usuario (almacenado como String).
      * @param createdAt Fecha y hora de creación.
      * @param phone Número de teléfono.
+     * * @param password Contraseña encriptada.
      */
-    public UserEntity(UUID id, String name, String email, String status, LocalDateTime createdAt, String phone) {
+    public UserEntity(UUID id, String name, String email, String status, LocalDateTime createdAt, String phone, String password) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.status = status;
         this.createdAt = createdAt;
         this.phone = phone;
+        this.password = password;
     }
 
    // Getters y Setters
@@ -82,5 +87,8 @@ public class UserEntity {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; } 
 
 }

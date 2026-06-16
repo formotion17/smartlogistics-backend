@@ -28,7 +28,8 @@ public class UserMapper {
             entity.getEmail(),
             UserStatus.valueOf(entity.getStatus()),
             entity.getCreatedAt(),
-            entity.getPhone()
+            entity.getPhone(),
+            entity.getPassword()
         );
     }
 
@@ -44,7 +45,8 @@ public class UserMapper {
             user.getEmail(),
             user.getStatus().name(),
             user.getCreatedAt(),
-            user.getPhone()
+            user.getPhone(),
+            user.getPassword()
         );
     }
 }

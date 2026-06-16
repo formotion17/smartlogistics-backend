@@ -1,0 +1,32 @@
+# ===================================================================
+# CONFIGURACIÓN DE PRODUCCIÓN (El servidor real en la nube)
+# ===================================================================
+spring:
+  datasource:
+    # ¿Por qué usamos ${...}?
+    # Regla de oro de seguridad (Factor 12-Factor App): NUNCA dejes contraseñas reales de producción 
+    # escritas en el código de GitHub, porque cualquiera con acceso al repositorio podría hackear la empresa. 
+    # Al usar ${DB_URL}, le decimos a Spring: "Cuando arranques, busca una variable de entorno en el 
+    # sistema operativo llamada DB_URL e inyecta su valor real aquí".
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Producción solo valida, Flyway es el único que altera la BD
+    # ¿Por qué false? 
+    # 1. Rendimiento: Escribir texto en la consola del servidor (I/O de disco) es una de las 
+    #    operaciones más lentas que existen. Apagar show-sql hace que la API responda mucho más rápido.
+    # 2. Seguridad: Evitamos que en los archivos de logs del servidor se queden guardados datos sensibles 
+    #    de los clientes que viajen en las consultas SQL.
+    show-sql: false
+
+# CONFIGURACIÓN DE SEGURIDAD EN PRODUCCIÓN (JWT)
+jwt:
+  # La clave de firma de tokens de producción es el secreto más crítico de tu infraestructura.
+  # Si alguien la robase, podría fabricar tokens falsos y entrar como Administrador. 
+  # Por eso se inyecta desde fuera de forma segura (ej. desde AWS Secrets Manager o Kubernetes Secrets).
+  secret: ${JWT_SECRET}
+  expiration: 86400000

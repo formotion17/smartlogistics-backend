@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.enterprise.user.application.ports.input.CreateUserCommand;
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
+import com.enterprise.user.application.ports.output.PasswordEncoderPort;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.domain.model.User;
 import com.enterprise.user.domain.model.UserStatus;
@@ -18,13 +19,16 @@ public class CreateUserService implements CreateUserUseCase {
 
     // Puerto de salida: La interfaz que permite al dominio comunicarse con la persistencia.
     private final UserRepositoryPort userRepositoryPort;
+    // Puerto de salida: La interfaz que permite al dominio comunicarse con la codificación de contraseñas.
+    private final PasswordEncoderPort passwordEncoderPort;
 
     /**
      * Inyección de dependencias por constructor. 
      * Favorece la inmutabilidad y facilita los tests unitarios.
      */
-    public CreateUserService(UserRepositoryPort userRepositoryPort) {
+    public CreateUserService(UserRepositoryPort userRepositoryPort, PasswordEncoderPort passwordEncoderPort) {
         this.userRepositoryPort = userRepositoryPort;
+        this.passwordEncoderPort = passwordEncoderPort; 
     }
 
     /**
@@ -40,6 +44,9 @@ public class CreateUserService implements CreateUserUseCase {
         UUID newID = UUID.randomUUID();
         UserStatus status = UserStatus.ACTIVE;
         LocalDateTime now = LocalDateTime.now();
+
+        // 2. Codificación de la contraseña: Antes de persistir, aseguramos que la contraseña no se almacene en texto plano.
+        String encodedPassword = passwordEncoderPort.encode(command.password());
         
         // 2. Mapeo al dominio: Convertimos el comando en un objeto de dominio puro.
         // El modelo 'User' es el corazón de la aplicación y garantiza la consistencia de los datos.
@@ -49,7 +56,8 @@ public class CreateUserService implements CreateUserUseCase {
             command.email(),
             status,
             now,
-            command.phone()
+            command.phone(),
+            encodedPassword
         );
 
         // 3. Persistencia: Invocamos el puerto de salida.

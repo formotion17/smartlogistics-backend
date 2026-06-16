@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.enterprise.user.application.ports.input.CreateUserCommand;
+import com.enterprise.user.application.ports.output.PasswordEncoderPort;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.domain.model.User;
 
@@ -26,6 +28,7 @@ import com.enterprise.user.domain.model.User;
 class CreateUserServiceTest {
     
     private UserRepositoryPort userRepositoryPort;
+    private PasswordEncoderPort passwordEncoderPort; // <-- 1. Nuevo Mock de seguridad
     private CreateUserService createUserService;
 
     /**
@@ -34,14 +37,15 @@ class CreateUserServiceTest {
      */
     @BeforeEach
     void setUp() { 
-        // Mockeamos el puerto de salida
-        // Mockeamos el puerto: Estamos creando un "doble" de tu repositorio. 
-        // Es como un actor de riesgo: hace lo mismo que el repositorio real, pero es controlado.
+        // Mockeamos los puertos
         userRepositoryPort = Mockito.mock(UserRepositoryPort.class);
+        passwordEncoderPort = Mockito.mock(PasswordEncoderPort.class);
 
-        // Inyectamos el "doble" en el servicio: 
-        // El servicio cree que está hablando con la base de datos real.
-        createUserService = new CreateUserService(userRepositoryPort);
+        // Simulamos que el encriptador siempre devuelve un hash seguro
+        when(passwordEncoderPort.encode(anyString())).thenReturn("hashedPassword123");
+
+        // Inyectamos los "dobles" en el servicio: 
+        createUserService = new CreateUserService(userRepositoryPort, passwordEncoderPort); // <-- 2. Pasamos el encriptador
     }
 
     /**
@@ -50,22 +54,19 @@ class CreateUserServiceTest {
      */
     @Test
     void shouldCreateUserSuccessfully() {
-        // 1. Arrange (Preparar datos)
-        CreateUserCommand command = new CreateUserCommand("Alex", "alex@test.com", "123456789");
+        // 1. Arrange (Preparar datos) - Añadimos contraseña
+        CreateUserCommand command = new CreateUserCommand("Alex", "alex@test.com", "123456789", "MiPassword123");
         
         // Simulamos que el repositorio devuelve un usuario al guardar
         when(userRepositoryPort.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // 2. Act (Ejecutar acción)
-        // El servicio recibe el comando.
-        // Crea un objeto User con sus validaciones y datos.
-        // Llama al userRepositoryPort.save(user).
-        // Aquí entra el Mockito: Como hemos definido when(...).thenAnswer(...), el test intercepta esa llamada y devuelve el usuario inmediatamente, sin tocar el disco ni la red.
         User user = createUserService.createUser(command);
 
         // 3. Assert (Verificar resultado)
         assertNotNull(user);
         assertNotNull(user.getId());
+        assertEquals("hashedPassword123", user.getPassword()); // Verificamos que se guardó encriptada
     
         // ¡ESTA ES LA LÍNEA CLAVE! 
         // Obligamos al test a verificar que el método save() se llamó una vez.
@@ -78,11 +79,10 @@ class CreateUserServiceTest {
      */
     @Test
     void shouldThrowExceptionWhenEmailAlreadyExists() {
-        // 1. Arrange: Preparamos el comando
-        CreateUserCommand command = new CreateUserCommand("Alex", "existe@test.com", "123456789");
+        // 1. Arrange: Preparamos el comando con contraseña
+        CreateUserCommand command = new CreateUserCommand("Alex", "existe@test.com", "123456789", "MiPassword123");
         
         // Simulamos que el repositorio lanza una excepción (ej. UserAlreadyExistsException)
-        // Nota: Esto asume que tienes esa excepción creada. Si no, puedes usar RuntimeException.
         when(userRepositoryPort.save(any(User.class)))
             .thenThrow(new RuntimeException("El email ya existe"));
 
@@ -102,8 +102,8 @@ class CreateUserServiceTest {
      */
     @Test
     void shouldCreateUserWithCorrectData() {
-        // 1. Arrange
-        CreateUserCommand command = new CreateUserCommand("Gemini", "gemini@test.com", "111222333");
+        // 1. Arrange - Añadimos contraseña
+        CreateUserCommand command = new CreateUserCommand("Gemini", "gemini@test.com", "111222333", "MiPassword123");
         
         // Configuramos el mock para capturar el argumento
         when(userRepositoryPort.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -116,6 +116,7 @@ class CreateUserServiceTest {
         assertEquals("Gemini", createdUser.getName());
         assertEquals("gemini@test.com", createdUser.getEmail());
         assertEquals("111222333", createdUser.getPhone());
+        assertEquals("hashedPassword123", createdUser.getPassword()); // Verificamos la encriptación
     }
     
 }

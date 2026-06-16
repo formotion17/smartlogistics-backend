@@ -7,6 +7,9 @@ import jakarta.validation.Valid;
 
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.enterprise.user.application.ports.input.CreateUserCommand;
 import com.enterprise.user.application.ports.input.CreateUserUseCase;
 import com.enterprise.user.application.ports.input.DeleteUserUseCase;
+import com.enterprise.user.application.ports.input.GetAllUsersUseCase;
 import com.enterprise.user.application.ports.input.GetUserByIdUseCase;
 import com.enterprise.user.application.ports.input.UpdateUserCommand;
 import com.enterprise.user.application.ports.input.UpdateUserUseCase;
@@ -43,15 +47,17 @@ public class UserController {
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserUseCase updateUserUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
-
+    private final GetAllUsersUseCase getAllUsersUseCase;
     /**
      * Constructor para inyección de dependencias de los casos de uso.
      */
-    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase, UpdateUserUseCase updateUserUseCase, DeleteUserUseCase deleteUserUseCase) {
+    public UserController(CreateUserUseCase createUserUseCase, GetUserByIdUseCase getUserByIdUseCase,
+        UpdateUserUseCase updateUserUseCase, DeleteUserUseCase deleteUserUseCase, GetAllUsersUseCase getAllUsersUseCase) {
         this.createUserUseCase = createUserUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserUseCase = updateUserUseCase;
         this.deleteUserUseCase = deleteUserUseCase;
+        this.getAllUsersUseCase = getAllUsersUseCase;
     }
 
     /**
@@ -63,7 +69,7 @@ public class UserController {
     public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
 
         // 1. Mapear los datos de entreda a lo que entiende nuestro command de aplicación
-        CreateUserCommand command = new CreateUserCommand(request.name(), request.email(), request.phone());
+        CreateUserCommand command = new CreateUserCommand(request.name(), request.email(), request.phone(),request.password());
 
         // 2. Ejecutar el caso de uso
         User createdUser = createUserUseCase.createUser(command);
@@ -91,13 +97,13 @@ public class UserController {
      * Busca un usuario por ID mediante parámetro de consulta (Query Param).
      * @param id Identificador único del usuario.
      * @return El usuario encontrado con código 200 OK.
-     */
+    
     @GetMapping
     public ResponseEntity<User> getUserByParam(@RequestParam UUID id) {
         User user = getUserByIdUseCase.getUserById(id)
                 .orElseThrow(() -> new UserNotFoundException("El usuario con ID " + id + " no existe."));
         return ResponseEntity.ok(user);
-    }
+    } */
 
     /**
      * Actualiza un usuario existente.
@@ -128,6 +134,27 @@ public class UserController {
         
         // 3. Devuelve 200 OK con el cuerpo del JSON
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Endpoint para obtener una lista paginada de todos los usuarios del sistema.
+     * <p>
+     * Permite a los clientes (ej. un frontend web) recuperar usuarios por bloques en lugar de descargar miles de golpe.
+     * Spring convierte automáticamente los parámetros de la URL (ej: /api/users?page=0&size=5&sort=name,asc)
+     * en el objeto {@link Pageable}.
+     * </p>
+     *
+     * @param pageable Parámetros de paginación interceptados por Spring.
+     * Si el cliente no envía parámetros en la URL, se usarán los valores por defecto 
+     * (@PageableDefault): página 0, tamaño 10, ordenados por email.
+     * @return Una respuesta HTTP 200 (OK) con el JSON que contiene el array de usuarios y los metadatos de la paginación.
+     */
+    @GetMapping
+    public ResponseEntity<Page<User>> getAllUsers(
+            @PageableDefault(size = 10, page = 0, sort = "email") Pageable pageable) {
+        
+        Page<User> users = getAllUsersUseCase.execute(pageable);
+        return ResponseEntity.ok(users);
     }
     
 }

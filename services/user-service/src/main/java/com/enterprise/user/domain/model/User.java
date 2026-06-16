@@ -19,6 +19,7 @@ public class User{
     private UserStatus status;
     private LocalDateTime createdAt;
     private String phone;
+    private String password;
 
     /**
      * Constructor de la entidad User.
@@ -30,9 +31,10 @@ public class User{
      * @param status Estado actual del usuario.
      * @param createdAt Fecha y hora de creación.
      * @param phone Número de teléfono.
+     * @param password Contraseña en texto plano (debe ser encriptada antes de persistir).
      * @throws IllegalArgumentException si los datos de entrada violan reglas de negocio.
      */
-    public User(UUID id, String name, String email, UserStatus status, LocalDateTime createdAt, String phone){
+    public User(UUID id, String name, String email, UserStatus status, LocalDateTime createdAt, String phone, String password){
         validateName(name);
         validateEmail(email);
 
@@ -42,6 +44,7 @@ public class User{
         this.status=status;
         this.createdAt=createdAt;
         this.phone=phone;
+        this.password=password;
     }
 
     /**
@@ -70,13 +73,14 @@ public class User{
     public UserStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public String getPhone() { return phone; }
+    public String getPassword() { return password; }
 
     // --- SETTERS (Necesarios para el estado mutable durante la lógica de actualización) ---
 
     public void setName(String name) {
         validateName(name); // Re-validamos al modificar
         this.name = name;
-    }
+}
 
     public void setEmail(String email) {
         validateEmail(email); // Re-validamos al modificar
@@ -89,6 +93,10 @@ public class User{
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
 }

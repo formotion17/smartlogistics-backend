@@ -12,9 +12,11 @@ package com.enterprise.user.application.ports.input;
  * @param name  Nombre del usuario a crear.
  * @param email Correo electrónico del usuario.
  * @param phone Número de teléfono del usuario.
+ * @param password Contraseña del usuario.
  */
 public record CreateUserCommand(
     String name,
     String email,
-    String phone
+    String phone,
+    String password
 ){}

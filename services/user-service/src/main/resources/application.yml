@@ -1,27 +1,78 @@
+#server:
+#  port: 8081
+
+#spring:
+#  application:
+#    name: user-service
+
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/smartlogistics
+#    username: admin
+#    password: admin
+#    driver-class-name: org.postgresql.Driver
+
+#  jpa:
+    # APAGAMOS LA MAGIA: Cambiamos 'update' por 'validate'
+    # Ahora Spring solo validará que la tabla existe, pero no la creará.
+#    hibernate:
+#      ddl-auto: validate
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+
+  # CONFIGURACIÓN DE FLYWAY
+#  flyway:
+#    enabled: true
+#    baseline-on-migrate: true # Ayuda si la base de datos ya tiene tablas
+
+# ===================================================================
+# CONFIGURACIÓN DE SEGURIDAD (JWT)
+# ===================================================================
+#jwt:
+  # Clave secreta de 256 bits para firmar los tokens (Mantener en secreto en producción)
+#  secret: V2F5QmV5b25kQVNlY3VyZUtleVRoYXQxczI1NkJpdHNMME5H
+  # Tiempo de expiración del token en milisegundos (24 horas)
+#  expiration: 86400000
+
+
+# ===================================================================
+# CONFIGURACIÓN GLOBAL (Aplica a todos los entornos por igual)
+# ===================================================================
 server:
-  port: 8081
+  port: 8081 # El puerto del microservicio siempre será el mismo
 
 spring:
   application:
-    name: user-service
+    name: user-service # El nombre de la aplicación no cambia entre entornos
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/smartlogistics
-    username: admin
-    password: admin
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    # APAGAMOS LA MAGIA: Cambiamos 'update' por 'validate'
-    # Ahora Spring solo validará que la tabla existe, pero no la creará.
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+  profiles:
+    # ¿Por qué ponemos esto aquí?
+    # Al definir 'active: dev', le indicamos a Spring que, por defecto en local, 
+    # cargue este archivo Y ADEMÁS busque el archivo 'application-dev.yml' para 
+    # fusionar sus propiedades. En el servidor real de producción, no editaremos este 
+    # archivo, sino que le pasaremos una variable de entorno al contenedor Docker 
+    # (SPRING_PROFILES_ACTIVE=prod) para cambiar de entorno al vuelo.
+    active: dev
 
   # CONFIGURACIÓN DE FLYWAY
+  # Flyway se ejecuta igual en cualquier entorno: lee los scripts de migración 
+  # y se asegura de que las tablas estén al día tanto en desarrollo como en producción.
   flyway:
     enabled: true
-    baseline-on-migrate: true # Ayuda si la base de datos ya tiene tablas
+    baseline-on-migrate: true
+# ===================================================================
+# CONFIGURACIÓN DE MONITORIZACIÓN (ACTUATOR)
+# ===================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        # ¿Por qué incluimos solo 'health'? 
+        # Por seguridad. Actuator tiene endpoints que exponen mucha información sensible. 
+        # En producción solo queremos abrir la puerta al chequeo médico básico de salud.
+        include: health
+  endpoint:
+    health:
+      # Muestra siempre si los componentes internos (como PostgreSQL o el espacio en disco) están sanos
+      show-details: always
