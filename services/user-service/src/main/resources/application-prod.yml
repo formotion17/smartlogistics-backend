@@ -2,6 +2,17 @@
 # CONFIGURACIÓN DE PRODUCCIÓN (El servidor real en la nube)
 # ===================================================================
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}                  # Obligatorio inyectar la IP del clúster de producción
+      port: ${REDIS_PORT:6379}             # Puerto inyectable (cae a 6379 por defecto si no se provee)
+      password: ${REDIS_PASSWORD}          # Contraseña de seguridad obligatoria en producción
+      timeout: 5000ms                      # Mayor tolerancia de timeout debido a latencias de red Cloud
+      lettuce:
+        pool:
+          max-active: 32                   # Capacidad expandida para atender ráfagas masivas de tráfico
+          max-idle: 16                     # Mantiene un colchón amplio de conexiones pre-abiertas
+          min-idle: 4                      # Asegura un mínimo de conexiones s
   datasource:
     # ¿Por qué usamos ${...}?
     # Regla de oro de seguridad (Factor 12-Factor App): NUNCA dejes contraseñas reales de producción 

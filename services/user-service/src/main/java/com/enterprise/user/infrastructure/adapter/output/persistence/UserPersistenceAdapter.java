@@ -4,6 +4,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -18,6 +21,10 @@ import com.enterprise.user.infrastructure.adapter.output.persistence.repository.
  * <p>
  * Refactorizado para delegar la lógica de mapeo a {@link UserMapper}, 
  * mejorando la mantenibilidad y cumpliendo con el principio de responsabilidad única.
+ * </p>
+ *  <p>
+ * <b>Modificación Fase 2:</b> Se incorpora el soporte de Redis mediante anotaciones declarativas
+ * para optimizar las lecturas por ID y por Email, gestionando de forma segura la invalidación.
  * </p>
  */
 @Component
@@ -38,10 +45,19 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     /**
      * Guarda un usuario aplicando una estrategia de reactivación si el email 
-     * ya existía previamente bajo un estado inactivo (Soft Delete).
+     * ya existía previamente bajo un estado inactivo (Soft Delete).* <p>
+     * <b>Mecanismo Redis:</b> Al guardar o actualizar (o resucitar), debemos desalojar las entradas de 
+     * la memoria RAM. Usamos el objeto '#result' (el usuario ya persistido y devuelto) para obtener 
+     * de forma segura el UUID y el Email final, limpiando ambos contenedores.
+     * </p>
      */
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "usersById", key = "#result.id", condition = "#result != null"),
+        @CacheEvict(value = "usersByEmail", key = "#result.email", condition = "#result != null")
+    }) //@Caching permite agrupar múltiples operaciones de desalojo (Evict) en un solo método
     public User save(User user) {
+
         // 1. Buscamos en la BD usando la query nativa si existe el registro (activo o inactivo)
         Optional<UserEntity> ghostUserOpt = springDataUserRepository.findAnyByEmailNative(user.getEmail());
 
@@ -73,8 +89,13 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     /**
      * Busca un usuario por correo, mapeando el resultado si existe.
+     * * <p>
+     * <b>Mecanismo Redis:</b> Se almacena el resultado en la región 'usersByEmail'. Si el email 
+     * vuelve a solicitarse, se sirve directo desde la RAM sin ejecutar el SELECT en PostgreSQL.
+     * </p>
      */
     @Override
+    @Cacheable(value = "usersByEmail", key = "#email") // Almacena en caché usando el email como clave
     public Optional<User> findByEmail(String email) {
         return springDataUserRepository.findByEmail(email)
             .map(userMapper::toDomain);
@@ -82,8 +103,13 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     /**
      * Busca un usuario por ID, mapeando el resultado si existe.
+     * <p>
+     * <b>Mecanismo Redis:</b> Se almacena el resultado en la región 'usersById'. Es el endpoint 
+     * más crítico y concurrido en arquitecturas orientadas a eventos o microservicios.
+     * </p>
      */
     @Override
+    @Cacheable(value = "usersById", key = "#id") // Almacena en caché usando el UUID como clave
     public Optional<User> findById(UUID id) {
         return springDataUserRepository.findById(id)
             .map(userMapper::toDomain);
@@ -91,8 +117,17 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
     /**
      * Elimina un usuario por ID.
+     * <p>
+     * <b>Mecanismo Redis:</b> Fulmina el registro de la caché de IDs. Al no conocer el email exacto
+     * en los argumentos de este método, aplicamos un 'allEntries = true' sobre la región de emails 
+     * para garantizar de manera segura que ningún email de un usuario eliminado quede huérfano en la RAM.
+     * </p>
      */
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "usersById", key = "#id"),
+        @CacheEvict(value = "usersByEmail", allEntries = true) // Purga segura de la región de emails
+    })
     public void deleteById(UUID id) {
         springDataUserRepository.deleteById(id);
     }
@@ -104,7 +139,11 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
      * para aplicar nuestro UserMapper a cada uno de los elementos internamente, transformando 
      * toda la página a Page<User> de forma limpia y eficiente.
      * </p>
-     *
+     * <p>
+     * <b>Nota de Arquitectura:</b> Las consultas paginadas NO se deben cachear en sistemas transaccionales, 
+     * ya que las infinitas combinaciones de páginas (page=0, size=10, sort=name) saturarían la memoria RAM 
+     * de Redis rápidamente con duplicados (Efecto Bloat).
+     * </p>
      * @param pageable Parámetros de paginación interceptados por el controlador.
      * @return Página de usuarios del modelo de dominio.
      */

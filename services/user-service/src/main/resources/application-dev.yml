@@ -2,6 +2,35 @@
 # CONFIGURACIÓN DE DESARROLLO (Tu máquina local)
 # ===================================================================
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # 🚀 OPCIÓN SENIOR 1: Indexación de Base de Datos Lógica
+      # Por defecto Redis expone 16 bases de datos independientes (indexadas del 0 al 15) en la misma instancia.
+      # Fijarlo explícitamente en '0' evita colisiones si en el futuro levantas otros microservicios que usen Redis.
+      database: 0
+
+      # 🚀 OPCIÓN SENIOR 2: Tiempos de Expiración de Red
+      timeout: 2000ms          # Tiempo máximo de espera para que un comando (ej: GET/SET) retorne respuesta de la caché.
+      connect-timeout: 1000ms  # Tiempo máximo permitido para establecer el socket inicial (handshake) con el contenedor.
+      
+      # 🚀 OPCIÓN SENIOR 3: Identificación de Conexiones Empresariales
+      # Si entras a la consola de Redis y ejecutas el comando 'CLIENT LIST', verás exactamente este nombre.
+      # Esto te permite saber en 1 segundo qué microservicio o contenedor es dueño de las conexiones abiertas.
+      client-name: smartlogistics-user-service-dev
+
+      lettuce:
+        shutdown-timeout: 100ms # Tiempo de gracia para cerrar los sockets limpiamente al apagar el microservicio.
+        pool:
+          max-active: 8     # Número máximo de conexiones simultáneas permitidas en el pool en desarrollo.
+          max-idle: 8       # Conexiones inactivas pero abiertas listas para ser reutilizadas al instante por cualquier hilo.
+          min-idle: 0       # No forzamos un mínimo en desarrollo para mitigar el consumo inútil de recursos de tu máquina.
+          
+          # 🚀 OPCIÓN SENIOR 4: Protección contra bloqueo de hilos
+          # Si las 8 conexiones del pool se saturan por tráfico denso, el hilo esperará máximo 1 segundo
+          # para que se libere una conexión antes de fallar. Evita que la aplicación entera se quede colgada.
+          max-wait: 1000ms
   datasource:
     # ¿Por qué lo ponemos así?
     # Apunta directamente al contenedor de PostgreSQL que tienes corriendo en tu localhost. 
