@@ -2,6 +2,8 @@ package com.enterprise.user.application.ports.input;
 
 import java.util.UUID;
 
+import com.enterprise.user.domain.model.UserStatus;
+
 /**
  * Command que encapsula los datos necesarios para ejecutar la acción de 
  * actualización de un usuario.
@@ -20,5 +22,7 @@ public record UpdateUserCommand(
     UUID id,
     String name,
     String email,
-    String phone
+    String phone,
+    String password,
+    UserStatus status
 ) {}

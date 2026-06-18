@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -12,6 +13,11 @@ import jakarta.persistence.Table;
 // <--- NUEVOS IMPORTS PARA EL SOFT DELETE DE HIBERNATE 6 --->
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Entidad de persistencia que representa la tabla 'users' en la base de datos.
@@ -34,6 +40,8 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLDelete(sql = "UPDATE users SET active = false WHERE id = ?")
 // Hibernate 6: Añade automáticamente "WHERE active = true" a todas las consultas de selección (GET/findAll)
 @SQLRestriction("active = true")
+//REGISTRO DE INTERCEPTORES: Ejecuta en tubería ambos oyentes del ciclo de vida
+@EntityListeners({AuditingEntityListener.class})
 public class UserEntity {
 
     @Id
@@ -47,9 +55,28 @@ public class UserEntity {
 
     @Column(nullable = false)
     private String status;
-
-    @Column(nullable = false, updatable = false)
+    
+    // ===================================================================
+    // CAMPOS DE AUDITORÍA INLINE (Fotografía del estado actual)
+    // ===================================================================
+    
+    @CreatedDate // Captura la fecha y hora exacta del INSERT automático
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @CreatedBy // Inyectará el email del operador autenticado vía JWT en el INSERT
+    @Column(name = "created_by", nullable = false, updatable = false)
+    private String createdBy;
+
+    @LastModifiedDate // Reescribe la fecha y hora actual automáticamente en cada UPDATE
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @LastModifiedBy // Reescribe el email del operador autenticado en cada UPDATE
+    @Column(name = "updated_by", nullable = false)
+    private String updatedBy;
+
+    // ===================================================================
 
     @Column(name = "phone")
     private String phone;
@@ -120,6 +147,15 @@ public class UserEntity {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
@@ -128,4 +164,5 @@ public class UserEntity {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
 }

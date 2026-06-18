@@ -9,7 +9,8 @@ import com.enterprise.user.domain.model.User;
 
 /**
  * Caso de uso: Login de usuarios.
- * Orquesta la verificación de credenciales y la emisión de tokens.
+ * Orquesta la verificación de credenciales, el registro de auditoría de acceso
+ * y la emisión de tokens.
  */
 public class LoginService implements LoginUseCase {
 
@@ -36,7 +37,11 @@ public class LoginService implements LoginUseCase {
             throw new RuntimeException("Credenciales inválidas");
         }
 
-        // 3. Generamos el token
+        // 3. 🚀 DISPARAMOS AUDITORÍA: Guardamos el evento de acceso con IP automática.
+        // Como el Adaptador extrae la IP del RequestContextHolder, no necesitamos pasarle nada.
+        userRepositoryPort.registrarAccesoLogin(user);
+
+        // 4. Generamos el token
         return tokenProviderPort.generateToken(user);
     }
 }

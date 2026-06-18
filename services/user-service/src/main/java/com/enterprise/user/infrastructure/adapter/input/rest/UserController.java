@@ -122,7 +122,7 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
-        UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email(),request.phone());
+        UpdateUserCommand command = new UpdateUserCommand(id, request.name(), request.email(),request.phone(),request.password(),request.status());
         User updatedUser = updateUserUseCase.updateUser(command);
         return ResponseEntity.ok(updatedUser);
     }

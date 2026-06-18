@@ -1,7 +1,12 @@
 package com.enterprise.user.application.usecase;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import com.enterprise.user.application.ports.input.UpdateUserCommand;
 import com.enterprise.user.application.ports.input.UpdateUserUseCase;
+import com.enterprise.user.application.ports.output.PasswordEncoderPort;
 import com.enterprise.user.application.ports.output.UserRepositoryPort;
 import com.enterprise.user.domain.exception.UserNotFoundException;
 import com.enterprise.user.domain.model.User;
@@ -17,13 +22,15 @@ import com.enterprise.user.domain.model.User;
 public class UpdateUserService implements UpdateUserUseCase {
     
     private final UserRepositoryPort userRepositoryPort;
+    private final PasswordEncoderPort passwordEncoderPort; //Inyectamos el puerto para no guardar texto plano
 
     /**
      * Constructor para la inyección de la dependencia de persistencia (puerto de salida).
      * @param userRepositoryPort Puerto de salida utilizado para acceder a los datos del usuario.
      */
-    public UpdateUserService(UserRepositoryPort userRepositoryPort) {
+    public UpdateUserService(UserRepositoryPort userRepositoryPort, PasswordEncoderPort passwordEncoderPort) {
         this.userRepositoryPort = userRepositoryPort;
+        this.passwordEncoderPort = passwordEncoderPort;
     }
 
     /**
@@ -41,15 +48,50 @@ public class UpdateUserService implements UpdateUserUseCase {
     public User updateUser(UpdateUserCommand command) {
         // 1. Buscar el usuario por ID
         User existingUser = userRepositoryPort.findById(command.id())
-                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + command.id()));
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + command.id()));
 
 
-        // 2. Actualizar los datos del usuario
-        existingUser.setName(command.name());
-        existingUser.setEmail(command.email());
-        existingUser.setPhone(command.phone());
+        // 🚀 CONTROL SELECTIVO DE MUTACIÓN:
+        // Solo invocamos los setters del dominio si el cliente envió datos reales en el JSON.
+        // Si vienen nulos o vacíos, mantenemos intacto el valor que ya tenía el usuario.
 
-        // 3. Guardar los cambios en el repositorio
+        if (command.name() != null && !command.name().isBlank()) {
+            existingUser.setName(command.name());
+        }
+
+        if (command.email() != null && !command.email().isBlank()) {
+            existingUser.setEmail(command.email());
+        }
+
+        if (command.phone() != null) {
+            existingUser.setPhone(command.phone()); // Permite vaciar el teléfono si se envía "" o actualizarlo
+        }
+
+        // 4. PROTECCIÓN DE CREDENCIALES: Si cambia la contraseña, la pasamos por el puerto de Hash
+        if (command.password() != null && !command.password().isBlank()) {
+            // 🚀 Encriptamos en caliente usando el componente hexagonal de la Fase 1
+            String passwordEncriptada = passwordEncoderPort.encode(command.password());
+            existingUser.setPassword(passwordEncriptada);
+        }
+
+        if (command.status() != null) {
+            
+            // Extraemos los privilegios del operador humano que está ejecutando la petición en Postman
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
+            // Si intenta alterar el estatus pero no es administrador, disparamos un cortocircuito de seguridad
+            if (!isAdmin) {
+                throw new AccessDeniedException("Operación denegada: Solo los administradores pueden alterar el estatus o rol de un usuario.");
+            }
+
+            // Si pasó el escudo, asignamos el enum directo sin necesidad de transformaciones de texto
+            existingUser.setStatus(command.status());
+        }
+
+        // 2. Enviamos el dominio perfectamente válido y mezclado al puerto para persistir y desalojar cachés
         return userRepositoryPort.save(existingUser);
     }
     

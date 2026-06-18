@@ -65,8 +65,8 @@ public class UseCaseConfig {
      * @return Implementación concreta {@link UpdateUserService}.
      */
     @Bean
-    public UpdateUserUseCase updateUserUseCase(UserRepositoryPort userRepositoryPort) {
-        return new UpdateUserService(userRepositoryPort);
+    public UpdateUserUseCase updateUserUseCase(UserRepositoryPort userRepositoryPort, PasswordEncoderPort passwordEncoderPort) {
+        return new UpdateUserService(userRepositoryPort, passwordEncoderPort);
     }
 
     /**

@@ -1,0 +1,104 @@
+package com.enterprise.user.infrastructure.adapter.output.persistence.listener;
+
+import com.enterprise.user.infrastructure.adapter.output.persistence.entity.UserEntity;
+import com.enterprise.user.infrastructure.adapter.output.persistence.entity.UserAudEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PostUpdate;
+import jakarta.persistence.PreRemove;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * Interceptor de Ciclo de Vida JPA (Entity Listener) encargado de la auditoría histórica.
+ * <p>
+ * Implementa {@link ApplicationContextAware} para posibilitar la captura estática del
+ * {@link EntityManager} de Spring, puenteando las limitaciones de instanciación de Hibernate.
+ * </p>
+ */
+@Component
+public class UserAuditListener implements ApplicationContextAware {
+
+    // Contenedor estático del contexto de Spring
+    private static ApplicationContext context;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        UserAuditListener.context = applicationContext;
+    }
+
+    /**
+     * Intercepta la inserción exitosa de un usuario (POST).
+     * @param user Clase espejo recién guardada.
+     */
+    @PostPersist
+    public void onPostPersist(UserEntity user) {
+        guardarHistorico(user, "INSERT");
+    }
+
+    /**
+     * Intercepta la actualización o resurrección exitosa de un usuario (PUT/PATCH).
+     * @param user Clase espejo modificada con los nuevos cambios aplicados.
+     */
+    @PostUpdate
+    public void onPostUpdate(UserEntity user) {
+        // Manejo inteligente del Soft Delete:
+        // Si el flag active cambia a false, capturamos el evento como un DELETE lógico a nivel de auditoría
+        String accion = user.isActive() ? "UPDATE" : "DELETE_LOGIC";
+        guardarHistorico(user, accion);
+    }
+
+    /**
+     * Intercepta operaciones de eliminación física extrema por consola o repositorio.
+     * @param user Clase espejo a punto de ser eliminada de las celdas físicas de laBD.
+     */
+    @PreRemove
+    public void onPreRemove(UserEntity user) {
+        guardarHistorico(user, "DELETE_PHYSICAL");
+    }
+
+    /**
+     * Método centralizado encargado de fabricar la réplica histórica y persistirla en PostgreSQL.
+     * <p>
+     * Se ejecuta bajo la propagación MANDATORY para asegurar que la inserción de la auditoría
+     * viaje de forma unificada dentro de la misma transacción de base de datos que la operación original.
+     * Si el guardado del usuario falla, la auditoría también sufre un Rollback automático.
+     * </p>
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    protected void guardarHistorico(UserEntity user, String tipoAccion) {
+        // 1. Resolvemos el EntityManager de Spring de manera segura y en caliente
+        EntityManager entityManager = context.getBean(EntityManager.class);
+
+        // 2. Extraemos el operador autenticado que viaja en el hilo a través del filtro de seguridad JWT
+        String operador = "SYSTEM";
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication != null && authentication.isAuthenticated() && authentication.getName() != null) {
+            operador = authentication.getName(); // Captura el email del usuario logueado
+        }
+
+        // 3. Construimos el clon de auditoría estructurada con los datos clonados
+        UserAudEntity auditoria = new UserAudEntity(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getStatus(),
+                user.getPhone(),
+                user.isActive(),
+                tipoAccion,
+                operador,
+                LocalDateTime.now()
+        );
+
+        // 4. Persistimos la réplica histórica en la tabla 'user_aud'
+        entityManager.persist(auditoria);
+    }
+}

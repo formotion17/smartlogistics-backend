@@ -56,4 +56,8 @@ public interface UserRepositoryPort {
      * @return Una "Página" (Page) que contiene la lista de usuarios correspondientes a los criterios solicitados y metadatos útiles.
      */
     Page<User> findAll(Pageable pageable);
+
+    // Modifica la firma en tu interfaz UserRepositoryPort para recibir la IP externa
+    void registrarAccesoLogin(User user);
+    
 }
