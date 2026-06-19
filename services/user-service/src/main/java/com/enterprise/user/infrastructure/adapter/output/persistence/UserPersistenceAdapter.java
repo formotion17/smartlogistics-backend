@@ -7,6 +7,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.javers.core.Javers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -41,9 +44,11 @@ import jakarta.servlet.http.HttpServletRequest;
 @Component
 public class UserPersistenceAdapter implements UserRepositoryPort {
 
+    private static final Logger log = LoggerFactory.getLogger(UserPersistenceAdapter.class);
     private final SpringDataUserRepository springDataUserRepository;
     private final SpringDataUserAudRepository springDataUserAudRepository; // Inyectamos el repositorio histórico
     private final UserMapper userMapper;
+    private final Javers javers; // Inyectamos Javers para auditoría de cambios
 
     /**
      * Constructor inyectado por Spring.
@@ -53,10 +58,12 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
      */
     public UserPersistenceAdapter(SpringDataUserRepository springDataUserRepository, 
                                   SpringDataUserAudRepository springDataUserAudRepository, 
-                                  UserMapper userMapper) {
+                                  UserMapper userMapper,
+                                  Javers javers) {
         this.springDataUserRepository = springDataUserRepository;
         this.springDataUserAudRepository = springDataUserAudRepository;
         this.userMapper = userMapper;
+        this.javers = javers;
     }
 
     /**
@@ -87,7 +94,11 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
 
         if (existingUserByIdOpt.isPresent()) {
             // ESTRATEGIA UPDATE PARCIAL: Si el usuario ya existe por ID, cargamos el registro de la BD
-            entityToSave = existingUserByIdOpt.get();
+            //entityToSave= existingUserByIdOpt.get(); // Guardamos el estado previo para la auditoría de cambios
+            //UserEntity oldEntity = existingUserByIdOpt.get();
+
+            UserEntity oldEntity = existingUserByIdOpt.get();
+            entityToSave = userMapper.cloneEntity(oldEntity);
             
             // Solo sobreescribimos los campos que NO vengan nulos ni vacíos en la petición del cliente
             if (user.getName() != null && !user.getName().isBlank()) entityToSave.setName(user.getName());
@@ -97,6 +108,17 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
             if (user.getStatus() != null) entityToSave.setStatus(user.getStatus().name());
             
             actionType = "UPDATE";
+
+            // [NUEVO] DETECCIÓN DE DELTA CON JAVERS
+            // Comparamos el estado previo (oldEntity) con el nuevo (entityToSave)
+            var diff = javers.compare(oldEntity, entityToSave);
+            if (diff.hasChanges()) {
+                log.debug("DEBUG - Delta detected: " + diff.prettyPrint());
+                // Llamamos a registrarHistorico pasando los cambios detectados
+                for (org.javers.core.diff.Change change : diff.getChanges()) {
+                    registrarHistorico(entityToSave, "UPDATE_DELTA: " + change.toString());
+                }
+            }
             
         } else {
             // 1. Buscamos en la BD usando la query nativa si existe el registro por EMAIL (activo o inactivo)
@@ -113,6 +135,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
                 entityToSave.setPassword(user.getPassword()); // Nueva contraseña encriptada
                 entityToSave.setStatus(user.getStatus().name()); // Rol reasignado (ej: USER)
                 entityToSave.setActive(true); // Lo volvemos a activar
+                
 
                 actionType = "UPDATE"; // Al reutilizar la fila, es una actualización histórica
             } else {
@@ -128,7 +151,9 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
         UserEntity savedEntity = springDataUserRepository.save(entityToSave);
 
         // 🚀 ORQUESTRACIÓN SENIOR: Grabamos el Snapshot Histórico de forma segura fuera del ciclo de Hibernate
-        registrarHistorico(savedEntity, actionType);
+        if ("INSERT".equals(actionType)) {
+            registrarHistorico(savedEntity, actionType);
+        }
         
         // 5. Devolvemos el resultado mapeado al Dominio
         return userMapper.toDomain(savedEntity);
@@ -138,7 +163,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
      * Busca un usuario por correo, mapeando el resultado si existe.
      */
     @Override
-    @Cacheable(value = "usersByEmail", key = "#email")
+    @Cacheable(value = "usersByEmail", key = "#email", unless = "#result == null") // 🟢 Evita cachear nulos
     public Optional<User> findByEmail(String email) {
         return springDataUserRepository.findByEmail(email)
             .map(userMapper::toDomain);
@@ -148,7 +173,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
      * Busca un usuario por ID, mapeando el resultado si existe.
      */
     @Override
-    @Cacheable(value = "usersById", key = "#id")
+    @Cacheable(value = "usersById", key = "#id", unless = "#result == null") // 🟢 Evita cachear nulos
     public Optional<User> findById(UUID id) {
         return springDataUserRepository.findById(id)
             .map(userMapper::toDomain);

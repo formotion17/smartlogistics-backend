@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 // <--- NUEVOS IMPORTS PARA EL SOFT DELETE DE HIBERNATE 6 --->
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.javers.core.metamodel.annotation.DiffIgnore;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -60,18 +61,22 @@ public class UserEntity {
     // CAMPOS DE AUDITORÍA INLINE (Fotografía del estado actual)
     // ===================================================================
     
+    @DiffIgnore
     @CreatedDate // Captura la fecha y hora exacta del INSERT automático
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @DiffIgnore
     @CreatedBy // Inyectará el email del operador autenticado vía JWT en el INSERT
     @Column(name = "created_by", nullable = false, updatable = false)
     private String createdBy;
 
+    @DiffIgnore
     @LastModifiedDate // Reescribe la fecha y hora actual automáticamente en cada UPDATE
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @DiffIgnore
     @LastModifiedBy // Reescribe el email del operador autenticado en cada UPDATE
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;

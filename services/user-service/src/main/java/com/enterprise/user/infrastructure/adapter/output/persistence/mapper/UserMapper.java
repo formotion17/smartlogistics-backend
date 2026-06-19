@@ -49,4 +49,21 @@ public class UserMapper {
             user.getPassword()
         );
     }
+
+    public UserEntity cloneEntity(UserEntity source) {
+        if (source == null) return null;
+        
+        UserEntity target = new UserEntity();
+        // Copiamos campo a campo (id, name, email, etc.)
+        target.setId(source.getId());
+        target.setName(source.getName());
+        target.setEmail(source.getEmail());
+        target.setPhone(source.getPhone());
+        target.setPassword(source.getPassword());
+        target.setStatus(source.getStatus());
+        target.setActive(source.isActive());
+        // ... copia aquí cualquier otro campo que tengas en tu entidad
+        
+        return target;
+    }
 }

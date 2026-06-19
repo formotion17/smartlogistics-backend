@@ -76,3 +76,7 @@ management:
     health:
       # Muestra siempre si los componentes internos (como PostgreSQL o el espacio en disco) están sanos
       show-details: always
+
+logging:
+  level:
+    com.enterprise.user.infrastructure.adapter.output.persistence: DEBUG

@@ -1,0 +1,1 @@
+ALTER TABLE user_aud ALTER COLUMN action_type TYPE TEXT;
