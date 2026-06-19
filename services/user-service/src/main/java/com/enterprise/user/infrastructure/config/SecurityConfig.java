@@ -20,6 +20,7 @@ import java.util.List;
 import com.enterprise.user.infrastructure.config.security.CustomAccessDeniedHandler;
 import com.enterprise.user.infrastructure.config.security.JwtAuthenticationEntryPoint;
 import com.enterprise.user.infrastructure.config.security.JwtAuthenticationFilter;
+import com.enterprise.user.infrastructure.config.security.RateLimitFilter;
 
 /**
  * Configuración central de seguridad de Spring.
@@ -34,11 +35,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final JwtAuthenticationEntryPoint jwtEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, JwtAuthenticationEntryPoint jwtEntryPoint, CustomAccessDeniedHandler accessDeniedHandler) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+        JwtAuthenticationEntryPoint jwtEntryPoint,
+        CustomAccessDeniedHandler accessDeniedHandler,
+        RateLimitFilter rateLimitFilter) {
         this.jwtAuthFilter = jwtAuthenticationFilter;
         this.jwtEntryPoint = jwtEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -55,6 +61,9 @@ public class SecurityConfig {
                 .authenticationEntryPoint(jwtEntryPoint) // Maneja los 401 (No Autenticado)
                 .accessDeniedHandler(accessDeniedHandler) // Maneja los 403 (Sin Permisos)
             )
+
+            // Dentro de tu SecurityFilterChain:
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)   
             
             // Configuramos las reglas de autorización de las rutas
             .authorizeHttpRequests(auth -> auth
