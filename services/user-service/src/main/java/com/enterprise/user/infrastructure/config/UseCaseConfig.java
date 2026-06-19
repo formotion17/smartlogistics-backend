@@ -17,6 +17,7 @@ import com.enterprise.user.application.usecase.LoginService;
 import com.enterprise.user.application.usecase.UpdateUserService;
 
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -95,8 +96,9 @@ public class UseCaseConfig {
     @Bean
     public LoginUseCase loginUseCase(UserRepositoryPort userRepositoryPort, 
                                      PasswordEncoderPort passwordEncoderPort, 
-                                     TokenProviderPort tokenProviderPort) {
-        return new LoginService(userRepositoryPort, passwordEncoderPort, tokenProviderPort);
+                                     TokenProviderPort tokenProviderPort,
+                                    CacheManager cacheManager) {
+        return new LoginService(userRepositoryPort, passwordEncoderPort, tokenProviderPort,cacheManager);
     }
 
     /**
