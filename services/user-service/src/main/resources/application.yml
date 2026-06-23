@@ -41,8 +41,11 @@
 # ===================================================================
 server:
   port: 8081 # El puerto del microservicio siempre será el mismo
+  shutdown: graceful # Permite que el microservicio se apague de manera ordenada, esperando a que las peticiones en curso terminen
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s # Tiempo máximo de espera para que el microservicio se apague de manera ordenada
   application:
     name: user-service # El nombre de la aplicación no cambia entre entornos
 
@@ -71,7 +74,7 @@ management:
         # ¿Por qué incluimos solo 'health'? 
         # Por seguridad. Actuator tiene endpoints que exponen mucha información sensible. 
         # En producción solo queremos abrir la puerta al chequeo médico básico de salud.
-        include: health
+        include: health,info,metrics
   endpoint:
     health:
       # Muestra siempre si los componentes internos (como PostgreSQL o el espacio en disco) están sanos

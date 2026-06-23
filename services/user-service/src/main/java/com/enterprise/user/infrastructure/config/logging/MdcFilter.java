@@ -21,10 +21,14 @@ public class MdcFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(MdcFilter.class);
     private static final String USER_ID_KEY = "userId";
+    private static final String CORRELATION_ID_KEY = "correlationId";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put(CORRELATION_ID_KEY, correlationId);
         
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
