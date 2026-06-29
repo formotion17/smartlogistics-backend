@@ -7,97 +7,76 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-// IMPORTS PARA CORS
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import com.enterprise.user.infrastructure.config.security.CustomAccessDeniedHandler;
-import com.enterprise.user.infrastructure.config.security.JwtAuthenticationEntryPoint;
-import com.enterprise.user.infrastructure.config.security.JwtAuthenticationFilter;
-import com.enterprise.user.infrastructure.config.security.RateLimitFilter;
-
-/**
- * Configuración central de seguridad de Spring.
- * Actúa como el "portero" que decide qué peticiones HTTP pasan, cuáles no, 
- * y qué niveles de privilegios (roles) se requieren para cada recurso.
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final JwtAuthenticationEntryPoint jwtEntryPoint;
-    private final CustomAccessDeniedHandler accessDeniedHandler;
-    private final RateLimitFilter rateLimitFilter;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-        JwtAuthenticationEntryPoint jwtEntryPoint,
-        CustomAccessDeniedHandler accessDeniedHandler,
-        RateLimitFilter rateLimitFilter) {
-        this.jwtAuthFilter = jwtAuthenticationFilter;
-        this.jwtEntryPoint = jwtEntryPoint;
-        this.accessDeniedHandler = accessDeniedHandler;
-        this.rateLimitFilter = rateLimitFilter;
-    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Activamos CORS usando nuestro Bean personalizado
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // Desactivamos CSRF porque vamos a usar Tokens (nuestra API es Stateless)
             .csrf(csrf -> csrf.disable())
             
-            // Configuramos el manejo de excepciones para usar nuestra respuesta personalizada (401)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(jwtEntryPoint) // Maneja los 401 (No Autenticado)
-                .accessDeniedHandler(accessDeniedHandler) // Maneja los 403 (Sin Permisos)
+            // Usamos OAuth2 Resource Server. Spring se encarga de todo.
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
             )
 
-            // Dentro de tu SecurityFilterChain:
-            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)   
-            
-            // Configuramos las reglas de autorización de las rutas
             .authorizeHttpRequests(auth -> auth
-
-                // Lista Blanca Pública: Documentación, Swagger y Check de Salud Médico (Actuator)
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/actuator/health", "/error").permitAll()                
-                // Permitimos que cualquiera pueda hacer Login o Registrarse de forma anónima
-                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                // Nota: Ahora Keycloak gestiona el registro/login, 
+                // ya no exponemos endpoints de login propios.
                 .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
-                
-                // <--- NUEVO LOCK: CONTROL DE ACCESO BASADO EN ROLES (RBAC) --->
-                // ¿Por qué lo ponemos aquí?
-                // Impedimos que usuarios comunes saboteen el sistema borrando registros.
-                // Al usar .hasRole("ADMIN"), Spring Security exige de forma automática que la petición
-                // contenga la autoridad "ROLE_ADMIN" provista por el JwtAuthenticationFilter.
-                // REGLA CRÍTICA: Debe declararse antes de .anyRequest().authenticated()
-                //.requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
-                
-                // Cualquier otra petición (como buscar todos, buscar por id, actualizar) requerirá estar autenticado
                 .anyRequest().authenticated()
             )
-            // Le decimos a Spring que NO cree sesiones en servidor, somos 100% Stateless con JWT
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Ponemos a nuestro interceptor de JWT antes del portero por defecto de Spring
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
             
         return http.build();
     }
 
-    /**
-     * Configuración de CORS (Cross-Origin Resource Sharing).
-     * Permite que aplicaciones Frontend externas (ej: React en localhost:3000) consuman esta API de forma segura.
-     */
+    // Convertidor para leer los roles de Keycloak (Realm Roles)
+// Convertidor para extraer correctamente los roles anidados de Keycloak
+    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            // 1. Buscamos el objeto "realm_access"
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            
+            // Si no existe o no tiene roles, devolvemos una lista vacía
+            if (realmAccess == null || !realmAccess.containsKey("roles")) {
+                return Collections.emptyList();
+            }
+            
+            // 2. Extraemos la lista de roles
+            @SuppressWarnings("unchecked")
+            Collection<String> roles = (Collection<String>) realmAccess.get("roles");
+            
+            // 3. Los convertimos al formato que Spring entiende (ej: "ROLE_ADMIN")
+            return roles.stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .collect(Collectors.toList());
+        });
+        
+        return converter;
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

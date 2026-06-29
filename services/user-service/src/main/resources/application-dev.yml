@@ -2,6 +2,14 @@
 # CONFIGURACIÓN DE DESARROLLO (Tu máquina local)
 # ===================================================================
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # En desarrollo, el microservicio no valida la firma del token JWT. 
+          # Esto permite que cualquier miembro del equipo pueda levantar el proyecto 
+          # sin necesidad de configurar un servidor de autenticación.
+          issuer-uri: http://localhost:9090/auth/realms/smartlogistics-realm
   data:
     redis:
       host: localhost
@@ -54,10 +62,11 @@ spring:
         format_sql: true # Formatea el SQL para que sea legible en tu terminal
 
 # CONFIGURACIÓN DE SEGURIDAD LOCAL (JWT)
-jwt:
+# Eliminamos esto porque vamos a poner OAUTH
+#jwt:
   # ¿Por qué dejamos la clave aquí escrita?
   # En desarrollo es cómodo tener una clave harcodeada compartida para que el equipo 
   # pueda levantar el proyecto sin configurar nada más. Al ser un entorno local, 
   # no hay peligro de que nadie nos robe el secreto.
-  secret: V2F5QmV5b25kQVNlY3VyZUtleVRoYXQxczI1NkJpdHNMME5H
-  expiration: 86400000 # 24 horas en milisegundos
+  #secret: V2F5QmV5b25kQVNlY3VyZUtleVRoYXQxczI1NkJpdHNMME5H
+  #expiration: 86400000 # 24 horas en milisegundos

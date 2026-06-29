@@ -93,13 +93,13 @@ public class UseCaseConfig {
      * @return La implementación concreta (LoginService) disfrazada de su interfaz (LoginUseCase), 
      * lista para ser inyectada en el controlador REST.
      */
-    @Bean
-    public LoginUseCase loginUseCase(UserRepositoryPort userRepositoryPort, 
-                                     PasswordEncoderPort passwordEncoderPort, 
-                                     TokenProviderPort tokenProviderPort,
-                                    CacheManager cacheManager) {
-        return new LoginService(userRepositoryPort, passwordEncoderPort, tokenProviderPort,cacheManager);
-    }
+    //@Bean
+    //public LoginUseCase loginUseCase(UserRepositoryPort userRepositoryPort, 
+    //                                 PasswordEncoderPort passwordEncoderPort, 
+    //                                 TokenProviderPort tokenProviderPort,
+    //                                CacheManager cacheManager) {
+    //    return new LoginService(userRepositoryPort, passwordEncoderPort, tokenProviderPort,cacheManager);
+    //}
 
     /**
      * Ensambla y registra la implementación GetAllUsersService como un Bean de Spring.

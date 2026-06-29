@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
+/*
     private final LoginUseCase loginUseCase;
 
     public AuthController(LoginUseCase loginUseCase) {
@@ -26,4 +26,5 @@ public class AuthController {
         // Devolvemos el Token JWT.
         return ResponseEntity.ok(token);
     }
+    */
 }
